@@ -3,10 +3,19 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+// 2024-04-23 jj5 - ASCII control characters we support
+//
 #define ASCII_BS 8
 #define ASCII_CR 13
 
+// 2024-04-23 jj5 - maximum length of a command
+//
 #define CMD_LEN 64
+
+// 2024-04-23 jj5 - pin assignments
+//
+int led_pin = 13;
+int pwm_pin = 9;
 
 // 2024-04-23 jj5 - LED control commands
 //
@@ -19,13 +28,14 @@ const char *CMD_FLASH = "flash";
 const char *CMD_START = "start";
 const char *CMD_STOP  = "stop";
 
+// 2024-04-23 jj5 - LED states
+//
 
 enum led_state { LED_OFF, LED_ON, LED_FLASH };
 
 volatile enum led_state led_state = LED_OFF;
 
-int led_pin = 13;
-int pwm_pin = 9;
+// 2024-04-23 jj5 - we use timer/counter2 to toggle the LED every 500 ms
 
 volatile int timer_2_counter = 0;
 
@@ -34,7 +44,7 @@ ISR( TIMER2_COMPA_vect ) {
   if ( timer_2_counter >= 50 ) {
     timer_2_counter = 0;
     // 2024-04-22 jj5 - toggle the LED every 500 ms
-    if ( state == FLASH ) {
+    if ( led_state == LED_FLASH ) {
       int pin = digitalRead( led_pin );
       digitalWrite( led_pin, !pin );
     }
@@ -58,6 +68,8 @@ void setup_timer_2() {
   sei();          // Enable global interrupts
 
 }
+
+// 2024-04-23 jj5 - we use timer/counter1 to generate a 261.63 Hz tone (middle C)
 
 void timer_1_stop() {
   TCCR1A = 0;
@@ -140,13 +152,13 @@ void read_command() {
             command_buffer[ command_index ] = '\0';
             command_index = 0;
             if ( strcmp( command_buffer, CMD_ON ) == 0 ) {
-              state = LED_ON;
+              led_state = LED_ON;
             }
             else if ( strcmp( command_buffer, CMD_OFF ) == 0 ) {
-              state = LED_OFF;
+              led_state = LED_OFF;
             }
             else if ( strcmp( command_buffer, CMD_FLASH ) == 0 ) {
-              state = LED_FLASH;
+              led_state = LED_FLASH;
             }
             else if ( strcmp( command_buffer, CMD_START ) == 0 ) {
               timer_1_start();
