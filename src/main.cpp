@@ -3,23 +3,28 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#define CHR_BS 8
-#define CHR_CR 13
+#define ASCII_BS 8
+#define ASCII_CR 13
 
-#define STR_LEN 64
+#define CMD_LEN 64
 
-const char *COMMAND_ON    = "on";
-const char *COMMAND_OFF   = "off";
-const char *COMMAND_FLASH = "flash";
+// 2024-04-23 jj5 - LED control commands
+//
+const char *CMD_ON    = "on";
+const char *CMD_OFF   = "off";
+const char *CMD_FLASH = "flash";
 
-const char *COMMAND_START = "start";
-const char *COMMAND_STOP  = "stop";
+// 2024-04-23 jj5 - tone control commands
+//
+const char *CMD_START = "start";
+const char *CMD_STOP  = "stop";
 
-enum state { OFF, ON, FLASH };
 
-volatile enum state state = OFF;
+enum led_state { LED_OFF, LED_ON, LED_FLASH };
 
-int blink_pin = 13;
+volatile enum led_state led_state = LED_OFF;
+
+int led_pin = 13;
 int pwm_pin = 9;
 
 volatile int timer_2_counter = 0;
@@ -30,8 +35,8 @@ ISR( TIMER2_COMPA_vect ) {
     timer_2_counter = 0;
     // 2024-04-22 jj5 - toggle the LED every 500 ms
     if ( state == FLASH ) {
-      int pin = digitalRead( blink_pin );
-      digitalWrite( blink_pin, !pin );
+      int pin = digitalRead( led_pin );
+      digitalWrite( led_pin, !pin );
     }
   }
 }
@@ -94,7 +99,7 @@ void setup_timer_1() {
 }
 
 void setup() {
-  pinMode( blink_pin, OUTPUT );
+  pinMode( led_pin, OUTPUT );
   setup_timer_2();
   setup_timer_1();
   Serial.begin( 115200 );
@@ -106,9 +111,9 @@ bool is_control_char( char c ) { return c < 32 || c == 127; }
 void read_command() {
 
   int command_index = 0;
-  char command_buffer[ STR_LEN ];
+  char command_buffer[ CMD_LEN ];
 
-  //char debug_buffer[ STR_LEN ];
+  //char debug_buffer[ CMD_LEN ];
 
   Serial.print( "Command: " );
 
@@ -124,29 +129,29 @@ void read_command() {
         //sprintf( debug_buffer, "The ASCII code is control character %d.\n", ord );
 
         switch ( chr ) {
-          case CHR_BS :
+          case ASCII_BS :
             if ( command_index > 0 ) {
               command_index--;
               Serial.print( chr );
             }
             break;
-          case CHR_CR :
+          case ASCII_CR :
             Serial.println( "" );
             command_buffer[ command_index ] = '\0';
             command_index = 0;
-            if ( strcmp( command_buffer, COMMAND_ON ) == 0 ) {
-              state = ON;
+            if ( strcmp( command_buffer, CMD_ON ) == 0 ) {
+              state = LED_ON;
             }
-            else if ( strcmp( command_buffer, COMMAND_OFF ) == 0 ) {
-              state = OFF;
+            else if ( strcmp( command_buffer, CMD_OFF ) == 0 ) {
+              state = LED_OFF;
             }
-            else if ( strcmp( command_buffer, COMMAND_FLASH ) == 0 ) {
-              state = FLASH;
+            else if ( strcmp( command_buffer, CMD_FLASH ) == 0 ) {
+              state = LED_FLASH;
             }
-            else if ( strcmp( command_buffer, COMMAND_START ) == 0 ) {
+            else if ( strcmp( command_buffer, CMD_START ) == 0 ) {
               timer_1_start();
             }
-            else if ( strcmp( command_buffer, COMMAND_STOP ) == 0 ) {
+            else if ( strcmp( command_buffer, CMD_STOP ) == 0 ) {
               timer_1_stop();
             }
             else {
@@ -163,7 +168,7 @@ void read_command() {
 
         command_buffer[ command_index++ ] = chr;
 
-        if ( command_index >= STR_LEN ) {
+        if ( command_index >= CMD_LEN ) {
           command_index = 0;
           Serial.println( "" );
           Serial.println( "Command too long." );
@@ -176,14 +181,14 @@ void read_command() {
 
 void loop() {
   read_command();
-  switch ( state ) {
-    case ON :
-      digitalWrite( blink_pin, HIGH );
+  switch ( led_state ) {
+    case LED_ON :
+      digitalWrite( led_pin, HIGH );
       break;
-    case OFF :
-      digitalWrite( blink_pin, LOW );
+    case LED_OFF :
+      digitalWrite( led_pin, LOW );
       break;
-    case FLASH :
+    case LED_FLASH :
       // 2024-04-22 jj5 - this is handled in the interrupt
       break;
   }
