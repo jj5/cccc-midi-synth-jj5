@@ -88,7 +88,7 @@ void timer_1_start() {
   // Set the prescaler to 8
   TCCR1B |= (1 << CS11);
 
-  // Calculate the value of ICR1 for the desired frequency
+  // Calculate the value of ICR1 for the desired frequency (261.63 Hz, middle C)
   unsigned int icr1 = (16000000 / (8 * 261.63)) - 1;
 
   ICR1 = icr1;
