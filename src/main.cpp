@@ -160,62 +160,62 @@ void read_command() {
 
   for ( ;; ) {
 
-    if ( Serial.available() > 0 ) {
+    if ( Serial.available() <= 0 ) { continue; }
 
-      char chr = Serial.read();
-      //int ord = chr;
+    char chr = Serial.read();
+    //int ord = chr;
 
-      if ( is_control_char( chr ) ) {
+    if ( ! is_control_char( chr ) ) {
 
-        //sprintf( debug_buffer, "The ASCII code is control character %d.\n", ord );
+      //sprintf( debug_buffer, "The ASCII code of '%c' is %d.\n", chr, ord );
 
-        switch ( chr ) {
-          case ASCII_BS :
-            if ( command_index > 0 ) {
-              command_index--;
-              Serial.print( chr );
-            }
-            break;
-          case ASCII_CR :
-            Serial.println( STR_EMPTY );
-            command_buffer[ command_index ] = '\0';
-            command_index = 0;
-            if ( strcmp( command_buffer, CMD_ON ) == 0 ) {
-              led_state = LED_ON;
-            }
-            else if ( strcmp( command_buffer, CMD_OFF ) == 0 ) {
-              led_state = LED_OFF;
-            }
-            else if ( strcmp( command_buffer, CMD_FLASH ) == 0 ) {
-              led_state = LED_FLASH;
-            }
-            else if ( strcmp( command_buffer, CMD_START ) == 0 ) {
-              timer_1_start();
-            }
-            else if ( strcmp( command_buffer, CMD_STOP ) == 0 ) {
-              timer_1_stop();
-            }
-            else {
-              Serial.println( STR_UNKNOWN_COMMAND );
-            }
-            return;
-        }
+      Serial.print( chr );
+
+      command_buffer[ command_index++ ] = chr;
+
+      if ( command_index >= CMD_LEN ) {
+        command_index = 0;
+        Serial.println( STR_EMPTY );
+        Serial.println( STR_COMMAND_TOO_LONG );
+        Serial.print( STR_COMMAND_PROMPT );
       }
-      else {
 
-        //sprintf( debug_buffer, "The ASCII code of '%c' is %d.\n", chr, ord );
+      continue;
 
-        Serial.print( chr );
+    }
 
-        command_buffer[ command_index++ ] = chr;
+    //sprintf( debug_buffer, "The ASCII code is control character %d.\n", ord );
 
-        if ( command_index >= CMD_LEN ) {
-          command_index = 0;
-          Serial.println( STR_EMPTY );
-          Serial.println( STR_COMMAND_TOO_LONG );
-          Serial.print( STR_COMMAND_PROMPT );
+    switch ( chr ) {
+      case ASCII_BS :
+        if ( command_index > 0 ) {
+          command_index--;
+          Serial.print( chr );
         }
-      }
+        break;
+      case ASCII_CR :
+        Serial.println( STR_EMPTY );
+        command_buffer[ command_index ] = '\0';
+        command_index = 0;
+        if ( strcmp( command_buffer, CMD_ON ) == 0 ) {
+          led_state = LED_ON;
+        }
+        else if ( strcmp( command_buffer, CMD_OFF ) == 0 ) {
+          led_state = LED_OFF;
+        }
+        else if ( strcmp( command_buffer, CMD_FLASH ) == 0 ) {
+          led_state = LED_FLASH;
+        }
+        else if ( strcmp( command_buffer, CMD_START ) == 0 ) {
+          timer_1_start();
+        }
+        else if ( strcmp( command_buffer, CMD_STOP ) == 0 ) {
+          timer_1_stop();
+        }
+        else {
+          Serial.println( STR_UNKNOWN_COMMAND );
+        }
+        return;
     }
   }
 }
